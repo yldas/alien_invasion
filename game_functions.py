@@ -4,6 +4,7 @@ import pygame
 
 from bullet import Bullet
 from alien import Alien
+from raindrop import Raindrop
 
 
 def check_keydown_events(event, ai_settings, screen, ship, bullets):
@@ -44,10 +45,12 @@ def check_events(ai_settings, screen, ship, bullets):
             check_keyup_events(event, ship)
 
 
-def update_screen(ai_settings, screen, ship, aliens, bullets):
+def update_screen(ai_settings, screen, ship, aliens, bullets, rain):
     """Update images on the screen and flip to the new screen."""
     # Redraw the screen during each pass through the loop.
     screen.fill(ai_settings.bg_color)
+    # Redraw all raindrops in front of ships and aliens
+    rain.draw(screen)
     # Redraw all bullets behind ship and aliens.
     for bullet in bullets.sprites():
         bullet.draw_bullet()
@@ -81,6 +84,62 @@ def get_number_rows(ai_settings, ship_height, alien_height):
     available_space_y = (ai_settings.screen_height - (3 * alien_height) - ship_height)
     number_rows = int(available_space_y / (2 * alien_height))
     return number_rows
+
+
+def create_raindrop(ai_settings, screen, rain, raindrop_number, row_number):
+    """Create a rain drop and place it in the row."""
+    raindrop = Raindrop(ai_settings, screen)
+    raindrop_width = raindrop.rect.width
+    raindrop.x = raindrop_width + 2 * raindrop_width * raindrop_number
+    raindrop.y = raindrop.rect.height + 2 * raindrop.rect.height * row_number
+    raindrop.rect.x = raindrop.x
+    raindrop.rect.y = raindrop.y
+    rain.add(raindrop)
+
+
+def create_rain(ai_settings, screen, rain):
+    """Create a grid of rain."""
+    # Create a rain drop and find the number of rain drops in a row.
+    # Spacing between each rain drop is equal to one rain drop width.
+    raindrop = Raindrop(ai_settings, screen)
+    available_space_x = ai_settings.screen_width - 2 * raindrop.rect.width
+    number_raindrops_x = int(available_space_x / (2 * raindrop.rect.width))
+    available_space_y = ai_settings.screen_height - 3 * raindrop.rect.height
+    number_rows = int(available_space_y / (2 * raindrop.rect.height))
+
+    # Create rain
+    for row_number in range(number_rows):
+        for raindrop_number in range(number_raindrops_x):
+            create_raindrop(ai_settings, screen, rain, raindrop_number, row_number)
+
+
+def create_rain_row(ai_settings, screen, rain):
+    """Create a single row of rain."""
+    raindrop = Raindrop(ai_settings, screen)
+    available_space_x = ai_settings.screen_width - 2 * raindrop.rect.width
+    number_raindrops_x = int(available_space_x / (2 * raindrop.rect.width))
+
+    # Create rain
+    for row_number in range(1):
+        for raindrop_number in range(number_raindrops_x):
+            create_raindrop(ai_settings, screen, rain, raindrop_number, row_number)
+
+
+def check_rain_edges(ai_settings, screen, rain):
+    """Respond appropriately if any rain drops have reached the bottom."""
+    for raindrop in rain.sprites().copy():
+        if raindrop.check_edges():
+            rain.remove(raindrop)
+            create_rain_row(ai_settings, screen, rain)
+
+
+def update_rain(ai_settings, screen, rain):
+    """
+    Check if the rain is at an edge,
+    and then update the positions of all rain drops.
+    """
+    check_rain_edges(ai_settings, screen, rain)
+    rain.update()
 
 
 def create_alien(ai_settings, screen, aliens, alien_number, row_number):
